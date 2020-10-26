@@ -1,0 +1,527 @@
+---
+title: "Medieval Corpus Clean"
+author: "Luke Lindemann"
+date: "Updated September 15, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+ # Custom Entropy functions: sumentropy, condbigram, condtrigram, rep.seqs
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+
+
+path_to_manuscripts <- 'Historical_texts/original/'
+path_to_goal <- 'Historical_texts/cleaned/'
+
+```
+
+
+```{r echo=FALSE}
+
+
+
+### This is a function which goes through texts and deletes uncommon letters
+### The default threshold is .01%
+
+delete_uncommon_chars <- function (s, thresh = .0001) {
+  
+  char.table <- table(unlist(strsplit(s, "")))
+  char.rat.table <- char.table / sum(char.table)
+  s.del <- s
+  
+  for (c in names(char.rat.table)) {
+    if (char.rat.table[c] <= thresh) {
+      print(c)
+      s.del <- str_remove_all(s.del, c)
+    }
+  }
+  
+  return (s.del)
+}
+
+
+
+
+```
+
+
+
+```{r echo=FALSE}
+
+# English Secreta Secretorum
+
+secr <- scan(paste(path_to_manuscripts, 'Secreta_Secretorum_ENG', sep=''), what="character", sep="\n", comment.char = "#")
+secr = concatenate(secr)
+
+str_length(secr)
+
+secr.clean <- tolower(secr)
+secr.clean <- gsub("[\\(\\);:\\.,\\'`\\?]", '', secr.clean)
+secr.clean <- gsub("\\]", '', secr.clean)
+secr.clean <- gsub("\\[", '', secr.clean)
+secr.clean <- delete_uncommon_chars(secr.clean)
+
+
+#char.table1 <- table(unlist(strsplit(secr.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+sumentropy(secr.clean)
+
+
+```
+
+```{r echo=FALSE}
+
+# Codex Wormianus
+
+worm.fac <- scan(paste(path_to_manuscripts, "Codex_Wormianus_fac", sep=''), what="character", sep="\n", comment.char = "#")
+worm.fac = concatenate(worm.fac)
+
+worm.dip <- scan(paste(path_to_manuscripts, "Codex_Wormianus_dip", sep=''), what="character", sep="\n", comment.char = "#")
+worm.dip = concatenate(worm.dip)
+
+worm.fac.clean <- tolower(worm.fac)
+worm.fac.clean <- gsub('\\[', '', worm.fac.clean)
+worm.fac.clean <- gsub('\\]', '', worm.fac.clean)
+worm.fac.clean <- gsub('[0-9\\.]', '', worm.fac.clean)
+worm.fac.clean <- gsub(' {2,}', ' ', worm.fac.clean)
+worm.fac.clean <- gsub('[\\?]', '', worm.fac.clean)
+worm.fac.clean <- delete_uncommon_chars(worm.fac.clean)
+
+
+worm.dip.clean <- tolower(worm.dip)
+worm.dip.clean <- gsub('\\[', '', worm.dip.clean)
+worm.dip.clean <- gsub('\\]', '', worm.dip.clean)
+worm.dip.clean <- gsub('[0-9\\.]', '', worm.dip.clean)
+worm.dip.clean <- gsub(' {2,}', ' ', worm.dip.clean)
+worm.dip.clean <- gsub('[\\?]', '', worm.dip.clean)
+worm.dip.clean <- delete_uncommon_chars(worm.dip.clean)
+
+
+#str_length(worm.dip.clean) / str_length(worm.dip)
+#str_length(worm.fac.clean) / str_length(worm.fac)
+
+
+#char.table1 <- table(unlist(strsplit(worm.fac.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+
+```
+
+```{r echo=FALSE}
+
+# Necrologium Lundense
+
+necr.fac <- scan(paste(path_to_manuscripts, "Necrologium_fac.txt", sep=''), what="character", sep="\n", comment.char = "#")
+necr.fac = concatenate(necr.fac)
+
+necr.dip <- scan(paste(path_to_manuscripts, "Necrologium_dip.txt", sep=''), what="character", sep="\n", comment.char = "#")
+necr.dip = concatenate(necr.dip)
+
+necr.fac.clean <- tolower(necr.fac)
+necr.fac.clean <- gsub('\\[', '', necr.fac.clean)
+necr.fac.clean <- gsub('\\]', '', necr.fac.clean)
+necr.fac.clean <- gsub('[0-9\\.]', '', necr.fac.clean)
+necr.fac.clean <- gsub(' {2,}', ' ', necr.fac.clean)
+necr.fac.clean <- gsub('[\\?]', '', necr.fac.clean)
+necr.fac.clean <- delete_uncommon_chars(necr.fac.clean)
+
+
+necr.dip.clean <- tolower(necr.dip)
+necr.dip.clean <- gsub('\\[', '', necr.dip.clean)
+necr.dip.clean <- gsub('\\]', '', necr.dip.clean)
+necr.dip.clean <- gsub('[0-9\\.]', '', necr.dip.clean)
+necr.dip.clean <- gsub(' {2,}', ' ', necr.dip.clean)
+necr.dip.clean <- gsub('[\\?]', '', necr.dip.clean)
+necr.dip.clean <- delete_uncommon_chars(necr.dip.clean)
+
+
+#str_length(necr.dip.clean) / str_length(necr.dip)
+#str_length(necr.fac.clean) / str_length(necr.fac)
+
+
+#char.table1 <- table(unlist(strsplit(necr.dip, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+#char.table1
+
+
+```
+
+```{r echo=FALSE}
+# Cirurgie
+
+cir <- scan(paste(path_to_manuscripts, "Cirurgie", sep=''), what="character", sep="\n", comment.char = "#")
+
+cir.clean <- cir[!grepl('^Page', cir)] # Exclude the Page No. lines
+cir.clean <- gsub('\\[[^]]*\\]', '', cir.clean) # Delete everything between brackets (deletes some text but mostly notes)
+cir.clean <- gsub('\\([^]]*\\)', '', cir.clean) # Same for parentheses
+cir.clean <- tolower(cir.clean)
+cir.clean <- gsub('[0-9]', '', cir.clean)
+cir.clean <- gsub('[¶/,:\\.;\\*\\"—\\?\\}\\{}]', '', cir.clean)
+cir.clean <- gsub('\\{illustration\\}', '', cir.clean)
+cir.clean <- gsub('\\]', '', cir.clean)
+cir.clean <- gsub('-', '', cir.clean)
+cir.clean <- gsub('\\[', '', cir.clean)
+cir.clean <- gsub("'", '', cir.clean)
+cir.clean <- gsub(' {2,}', ' ', cir.clean)
+cir.clean <- delete_uncommon_chars(cir.clean)
+
+cir.clean <- concatenate(cir.clean, collapse="")
+
+#char.table1 <- table(unlist(strsplit(cir.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+
+```
+
+
+```{r echo=FALSE}
+
+# Casebook
+
+case_dip <- scan(paste(path_to_manuscripts, "Casebook_dip", sep=''), what="character", sep="\n", comment.char = "#")
+case_norm <- scan(paste(path_to_manuscripts, "Casebook_norm", sep=''), what="character", sep="\n", comment.char = "#")
+
+case_norm.clean <- tolower(case_norm)
+case_norm.clean <- gsub('\\{[0-9a-z ]*\\}','',case_norm.clean)
+case_norm.clean <- gsub('<[0-9a-z\\. ]*>','',case_norm.clean)
+case_norm.clean <- gsub('\\[(partial )?(blank )?astrological chart\\]','',case_norm.clean)
+case_norm.clean <- gsub('[\\.\\\\/:\\?\\(\\),’]', '', case_norm.clean)
+case_norm.clean <- gsub(' {2,}', ' ', case_norm.clean)
+case_norm.clean <- delete_uncommon_chars(case_norm.clean)
+
+
+case_norm.clean <- concatenate(case_norm.clean, collapse="")
+
+
+case_dipl.clean <- tolower(case_dip)
+case_dipl.clean <- gsub('\\{[0-9a-z ]*\\}','',case_dipl.clean)
+case_dipl.clean <- gsub('<[0-9a-z\\. ]*>','',case_dipl.clean)
+case_dipl.clean <- gsub('\\[(partial )?(blank )?astrological chart\\]','',case_dipl.clean)
+case_dipl.clean <- gsub('[\\.\\\\/:,’(\\?]', '', case_dipl.clean)
+case_dipl.clean <- gsub(' {2,}', ' ', case_dipl.clean)
+case_dipl.clean <- delete_uncommon_chars(case_dipl.clean)
+
+
+case_dipl.clean <- concatenate(case_dipl.clean, collapse="")
+
+
+#char.table1 <- table(unlist(strsplit(case_norm.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+```
+
+
+```{r echo=FALSE}
+
+# Funeral Prayer
+
+fun <- scan(paste(path_to_manuscripts, "Funeral Prayer", sep=''), what="character", sep="\n", comment.char = "#")
+
+fun.clean <- tolower(fun)
+fun.clean <- gsub('\\[[^]]*\\]', '', fun.clean) # Delete everything between brackets (deletes some text but mostly notes)
+fun.clean <- gsub('\\([^)]*\\)', '', fun.clean) 
+fun.clean <- gsub('[-\\.,:]', '', fun.clean)
+fun.clean <- gsub(' {2,}', ' ', fun.clean)
+
+
+fun.clean <- concatenate(fun.clean, collapse="")
+
+```
+
+
+```{r echo=FALSE}
+#HEBREW
+mish <- scan(paste(path_to_manuscripts, "Hebrew_Mishneh", sep=''), what="character", sep="\n", comment.char = "#")
+
+mish.clean <- gsub("[;,'׃\\.>\\(\\)]", '', mish)
+mish.clean <- gsub('"', '', mish.clean)
+mish.clean <- gsub('\\-', '', mish.clean)
+mish.clean <- gsub('\\[', '', mish.clean)
+mish.clean <- gsub('\\]', '', mish.clean)
+mish.clean <- concatenate(mish.clean, collapse="")
+mish.clean <- gsub(' {2,}', ' ', mish.clean)
+mish.clean <- delete_uncommon_chars(mish.clean)
+
+
+
+ber <-  scan(paste(path_to_manuscripts, "Hebrew_Bereshit", sep=''), what="character", sep="\n", comment.char = "#")
+
+ber.clean <- gsub('[0-9׃\\*=]', '', ber)
+ber.clean <- gsub('\\[', '', ber.clean)
+ber.clean <- gsub('\\]', '', ber.clean)
+ber.clean <- concatenate(ber.clean, collapse="")
+ber.clean <- gsub(' {2,}', ' ', ber.clean)
+ber.clean <- delete_uncommon_chars(ber.clean)
+
+
+ber.v <-  scan(paste(path_to_manuscripts, "Hebrew_Bereshit_vowel", sep=''), what="character", sep="\n", comment.char = "#")
+
+ber.v.clean <- gsub('[0-9׃\\*=]', '', ber.v)
+ber.v.clean <- gsub('\\[', '', ber.v.clean)
+ber.v.clean <- gsub('\\]', '', ber.v.clean)
+ber.v.clean <- concatenate(ber.v.clean, collapse="")
+ber.v.clean <- gsub(' {2,}', ' ', ber.v.clean)
+ber.v.clean <- delete_uncommon_chars(ber.v.clean)
+
+
+
+#char.table1 <- table(unlist(strsplit(ber.v.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+
+```
+
+```{r echo=FALSE}
+# LATIN
+adso <-  scan(paste(path_to_manuscripts, "Latin_Adso", sep=''), what="character", sep="\n", comment.char = "#")
+aix <-  scan(paste(path_to_manuscripts, "Latin_Aix", sep=''), what="character", sep="\n", comment.char = "#")
+
+
+adso.clean <- tolower(adso)
+adso.clean <- gsub('[:",\\.]', '', adso.clean)
+adso.clean <- gsub('\\[', '', adso.clean)
+adso.clean <- gsub('\\]', '', adso.clean)
+adso.clean <- gsub('\\-', '', adso.clean)
+adso.clean <- gsub(' {2,}', ' ', adso.clean)
+adso.clean <- delete_uncommon_chars(adso.clean)
+
+adso.clean <- concatenate(adso.clean, collapse="")
+
+aix.clean <- tolower(aix)
+aix.clean <- gsub('\\[[0-9]*[a-z]\\]', '', aix.clean)
+aix.clean <- gsub('[01«»\\(\\)\\?:;\\.,\\!\\*]', '', aix.clean)
+aix.clean <- gsub('\\-', '', aix.clean)
+aix.clean <- gsub(' {2,}', ' ', aix.clean)
+aix.clean <- delete_uncommon_chars(aix.clean)
+
+aix.clean <- concatenate(aix.clean, collapse="")
+
+
+#char.table1 <- table(unlist(strsplit(aix.clean, "")))
+#length(char.table1)
+#x <- char.table1[order(char.table1, decreasing=TRUE)]
+#x
+
+```
+
+
+
+```{r echo=FALSE}
+
+# ADDITIONAL TEXTS FROM THE WORD2VEC FILES
+
+# LATIN
+
+# Secreta Secretorum
+secr.lat <-  scan(paste(path_to_manuscripts, "Secreta_Secretorum_LAT", sep=''), what="character", sep="\n", comment.char = "#")
+secr.lat <- concatenate(secr.lat)
+
+secr.lat.clean <- tolower(secr.lat)
+secr.lat.clean <- gsub('[:",\\.;\\(\\)|0-9/—\\?\\!\\^<>‹›«□▴☌☍\u26b9\ufeff]', ' ', secr.lat.clean)
+secr.lat.clean <- gsub('\\[', ' ', secr.lat.clean)
+secr.lat.clean <- gsub('\\]', ' ', secr.lat.clean)
+secr.lat.clean <- gsub('\\-', ' ', secr.lat.clean)
+secr.lat.clean <- gsub('\\t', ' ', secr.lat.clean)
+secr.lat.clean <- gsub("'", ' ', secr.lat.clean)
+secr.lat.clean <- gsub(' {2,}', ' ', secr.lat.clean)
+secr.lat.clean <- delete_uncommon_chars(secr.lat.clean)
+
+secr.lat.clean <- concatenate(secr.lat.clean, collapse="")
+
+
+
+# De Magia
+bruno <-  scan(paste(path_to_manuscripts, "BrunoDeMagia", sep=''), what="character", sep="\n", comment.char = "#")
+bruno <- concatenate(bruno)
+bruno.clean <- tolower(bruno)
+bruno.clean <- gsub('[:",\\.\\^;\\(\\)|0-9/—\\?§\\*]', '', bruno.clean)
+bruno.clean <- gsub("'", '', bruno.clean)
+bruno.clean <- gsub('\\[', '', bruno.clean)
+bruno.clean <- gsub('\\]', '', bruno.clean)
+bruno.clean <- gsub('\\-', '', bruno.clean)
+bruno.clean <- gsub('\\t', '', bruno.clean)
+bruno.clean <- gsub(' {2,}', ' ', bruno.clean)
+bruno.clean <- delete_uncommon_chars(bruno.clean)
+
+bruno.clean <- concatenate(bruno.clean, collapse="")
+
+
+# Steganographia
+steg <-  scan(paste(path_to_manuscripts, "Steganographia", sep=''), what="character", sep="\n", comment.char = "#")
+steg <- concatenate(steg)
+steg.clean <- tolower(steg)
+steg.clean <- gsub('[:",\\.;\\(\\)|0-9/—\\?`*>\\+áé\\-]', '', steg.clean)
+steg.clean <- gsub("'", '', steg.clean)
+steg.clean <- gsub('\\[', '', steg.clean)
+steg.clean <- gsub('\\]', '', steg.clean)
+steg.clean <- gsub('\\-', '', steg.clean)
+steg.clean <- gsub('\\t', '', steg.clean)
+
+steg.clean <- gsub('a~', 'ã', steg.clean)
+steg.clean <- gsub('e~', 'ẽ', steg.clean)
+steg.clean <- gsub('i~', 'ĩ', steg.clean)
+steg.clean <- gsub('o~', 'õ', steg.clean)
+steg.clean <- gsub('u~', 'ũ', steg.clean)
+steg.clean <- gsub('q~', 'q̃', steg.clean)
+
+steg.clean <- gsub(' {2,}', ' ', steg.clean)
+steg.clean <- delete_uncommon_chars(steg.clean)
+steg.clean <- concatenate(steg.clean, collapse="")
+
+
+
+# MIDDLE ENGLISH
+
+
+# Alphabet of Tales
+alpha <-  scan(paste(path_to_manuscripts, "AlphabetOfTales", sep=''), what="character", sep="\n", comment.char = "#")
+alpha <- concatenate(alpha)
+alpha.clean <- tolower(alpha)
+alpha.clean <- gsub('\\[[^]]*\\]', '', alpha.clean) # Delete everything between brackets (deletes expanded abbreviations and MS notes)
+alpha.clean <- gsub('[:",\\.;\\(\\)|0-9/—\\?`¶=\\!]', '', alpha.clean)
+alpha.clean <- gsub("'", ' ', alpha.clean)
+alpha.clean <- gsub(' {2,}', ' ', alpha.clean)
+alpha.clean <- gsub('\\[', '', alpha.clean)
+alpha.clean <- gsub('\\]', '', alpha.clean)
+alpha.clean <- gsub('\\-', '', alpha.clean)
+alpha.clean <- delete_uncommon_chars(alpha.clean)
+
+alpha.clean <- concatenate(alpha.clean, collapse="")
+
+# Agrippa Book 1
+agrippa <-  scan(paste(path_to_manuscripts, "Agrippa_book1", sep=''), what="character", sep="\n", comment.char = "#")
+agrippa <- concatenate(agrippa)
+agrippa.clean <- tolower(agrippa)
+agrippa.clean <- gsub('[:",\\.;\\(\\)|0-9/—\\?`¶=\\!÷öáàâãåäçéèëìîñòôøúùð\\*<>\\-]', '', agrippa.clean)
+agrippa.clean <- gsub("'", '', agrippa.clean)
+agrippa.clean <- gsub('\\[', '', agrippa.clean)
+agrippa.clean <- gsub('\\]', '', agrippa.clean)
+agrippa.clean <- gsub('\\-', '', agrippa.clean)
+agrippa.clean <- gsub('\\t', '', agrippa.clean)
+agrippa.clean <- delete_uncommon_chars(agrippa.clean)
+
+
+agrippa.clean <- gsub(' {2,}', ' ', agrippa.clean)
+agrippa.clean <- concatenate(agrippa.clean, collapse="")
+
+
+# SPANISH
+# Picatrix
+
+pica <-  scan(paste(path_to_manuscripts, "Picatrix", sep=''), what="character", sep="\n", comment.char = "#")
+pica <- concatenate(pica)
+pica.clean <- tolower(pica)
+pica.clean <- gsub('[:",\\.;\\(\\)|0-9/—\\?`¡»¿«=\\!º^]', '', pica.clean)
+pica.clean <- gsub('\\[', '', pica.clean)
+pica.clean <- gsub('\\]', '', pica.clean)
+pica.clean <- gsub('\\-', '', pica.clean)
+pica.clean <- gsub('\\t', '', pica.clean)
+pica.clean <- delete_uncommon_chars(pica.clean)
+
+
+pica.clean <- gsub(' {2,}', '', pica.clean)
+pica.clean <- concatenate(pica.clean, collapse="")
+
+
+
+
+```
+
+```{r echo=FALSE}
+
+# ITALIAN
+# Rettorica
+
+rett <-  scan(paste(path_to_manuscripts, "Old Italian Rettorica.txt", sep=''), what="character", sep="\n", comment.char = "#")
+
+rett.clean <- concatenate(rett)
+rett.clean <- tolower(rett.clean)
+rett.clean <- gsub('((page: )|(line: )|(paragraph: )|(section: ))', '', rett.clean)
+rett.clean <- gsub('(chapter: )[ixv]*', '', rett.clean)
+rett.clean <- gsub("[»«,;\\?\\.·:\\(\\)0-9']", '', rett.clean)
+rett.clean <- gsub('\\[', '', rett.clean)
+rett.clean <- gsub('\\]', '', rett.clean)
+rett.clean <- gsub('\\-', '', rett.clean)
+rett.clean <- gsub(' {2,}', '', rett.clean)
+rett.clean <- delete_uncommon_chars(rett.clean)
+
+# GEORGIAN
+# Amirandar
+
+amir <- scan(paste(path_to_manuscripts, "Georgian Amirandar.txt", sep=''), what="character", sep="\n", comment.char = "#")
+
+amir.clean <- concatenate(amir)
+amir.clean <- gsub('[^\u10A0-\u10FF ]', '', amir.clean) # Filter out anything not in the Georgian script range
+amir.clean <- gsub(' {2,}', '', amir.clean)
+
+
+# PERSIAN
+# Sindbad
+
+sind <- scan(paste(path_to_manuscripts, "Persian Sindbad.txt", sep=''), what="character", sep="\n", comment.char = "#")
+
+sind.clean <- concatenate(sind)
+sind.clean <- gsub('[^\u0600-\u06FF\u08A0-\u08FF ﴽﷲ]', '', sind.clean) # Filter out all but Arabic and Extended Arabic
+sind.clean <- gsub(' {2,}', '', sind.clean)
+
+
+
+```
+
+```{r echo=FALSE}
+
+# WRITE CLEANED FILES
+
+
+
+write(secr.clean, file = paste(path_to_goal, 'Secreta_Secretorum_ENG', sep=''), sep = "")
+write(worm.fac.clean, file = paste(path_to_goal, 'Codex_Wormianus_fac', sep=''), sep = "")
+write(worm.dip.clean, file = paste(path_to_goal, 'Codex_Wormianus_dip', sep=''), sep = "")
+write(cir.clean, file = paste(path_to_goal, 'Cirurgie', sep=''), sep = "")
+write(case_norm.clean, file = paste(path_to_goal, 'Casebook_norm', sep=''), sep = "")
+write(case_dipl.clean, file = paste(path_to_goal, 'Casebook_diplomatic', sep=''), sep = "")
+#write(fun.clean, file = paste(path_to_goal, 'Hungarian_Funeral', sep=''), sep = "")
+write(mish.clean, file = paste(path_to_goal, 'Hebrew_Mishneh', sep=''), sep = "")
+write(ber.clean, file = paste(path_to_goal, 'Hebrew_Bereshit', sep=''), sep = "")
+write(ber.v.clean, file = paste(path_to_goal, 'Hebrew_Bereshit_vowel', sep=''), sep = "")
+write(adso.clean, file = paste(path_to_goal, 'Latin_Adso', sep=''), sep = "")
+write(aix.clean, file = paste(path_to_goal, 'Latin_Aix', sep=''), sep = "")
+write(secr.lat.clean, file = paste(path_to_goal, 'Secreta_Secretorum_LAT', sep=''), sep = "")
+write(bruno.clean, file = paste(path_to_goal, 'BrunoDeMagia', sep=''), sep = "")
+write(steg.clean, file = paste(path_to_goal, 'Steganographia', sep=''), sep = "")
+write(agrippa.clean, file = paste(path_to_goal, 'Agrippa_Book1', sep=''), sep = "")
+write(alpha.clean, file = paste(path_to_goal, 'AlphabetOfTales', sep=''), sep = "")
+write(pica.clean, file = paste(path_to_goal, 'Picatrix', sep=''), sep = "")
+write(necr.dip.clean, file = paste(path_to_goal, 'Necrologium_dip', sep=''), sep = "")
+write(necr.fac.clean, file = paste(path_to_goal, 'Necrologium_fac', sep=''), sep = "")
+write(rett.clean, file = paste(path_to_goal, 'Rettorica', sep=''), sep = "")
+write(amir.clean, file = paste(path_to_goal, 'Amirandar', sep=''), sep = "")
+write(sind.clean, file = paste(path_to_goal, 'Sindbad', sep=''), sep = "")
+
+
+```

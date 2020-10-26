@@ -1,0 +1,93 @@
+---
+title: "Create Historical Stat File"
+author: "Luke Lindemann"
+date: "Updated September 15, 2019"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+ # Custom Entropy functions: sumentropy, condbigram, condtrigram, rep.seqs
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+
+
+path_to_goal <- 'Historical_texts/cleaned/'
+
+
+secr <- scan(paste(path_to_goal, 'Secreta_Secretorum_ENG', sep=''), what="character", sep="\n", comment.char = "#")
+worm.fac <- scan(paste(path_to_goal, 'Codex_Wormianus_fac', sep=''), what="character", sep="\n", comment.char = "#")
+worm.dip <- scan(paste(path_to_goal, 'Codex_Wormianus_dip', sep=''), what="character", sep="\n", comment.char = "#")
+cir <- scan(paste(path_to_goal, 'Cirurgie', sep=''), what="character", sep="\n", comment.char = "#")
+case_norm <- scan(paste(path_to_goal, 'Casebook_norm', sep=''), what="character", sep="\n", comment.char = "#")
+case_dip <- scan(paste(path_to_goal, 'Casebook_diplomatic', sep=''), what="character", sep="\n", comment.char = "#")
+#fun <- scan(paste(path_to_goal, 'Hungarian_Funeral', sep=''), what="character", sep="\n", comment.char = "#")
+mish <- scan(paste(path_to_goal, 'Hebrew_Mishneh', sep=''), what="character", sep="\n", comment.char = "#")
+ber <- scan(paste(path_to_goal, 'Hebrew_Bereshit', sep=''), what="character", sep="\n", comment.char = "#")
+ber.v <- scan(paste(path_to_goal, 'Hebrew_Bereshit_vowel', sep=''), what="character", sep="\n", comment.char = "#")
+adso <- scan(paste(path_to_goal, 'Latin_Adso', sep=''), what="character", sep="\n", comment.char = "#")
+aix <- scan(paste(path_to_goal, 'Latin_Aix', sep=''), what="character", sep="\n", comment.char = "#")
+secr.lat <- scan(paste(path_to_goal, 'Secreta_Secretorum_LAT', sep=''), what="character", sep="\n", comment.char = "#")
+bruno <- scan(paste(path_to_goal, 'BrunoDeMagia', sep=''), what="character", sep="\n", comment.char = "#")
+steg <- scan(paste(path_to_goal, 'Steganographia', sep=''), what="character", sep="\n", comment.char = "#")
+agrippa <- scan(paste(path_to_goal, 'Agrippa_Book1', sep=''), what="character", sep="\n", comment.char = "#")
+alpha <- scan(paste(path_to_goal, 'AlphabetOfTales', sep=''), what="character", sep="\n", comment.char = "#")
+pica <- scan(paste(path_to_goal, 'Picatrix', sep=''), what="character", sep="\n", comment.char = "#")
+
+necr.fac <- scan(paste(path_to_goal, 'Necrologium_fac', sep=''), what="character", sep="\n", comment.char = "#")
+
+
+necr.dip <- scan(paste(path_to_goal, 'Necrologium_dip', sep=''), what="character", sep="\n", comment.char = "#")
+
+rett <- scan(paste(path_to_goal, 'Rettorica', sep=''), what="character", sep="\n", comment.char = "#")
+amir <- scan(paste(path_to_goal, 'Amirandar', sep=''), what="character", sep="\n", comment.char = "#")
+sind <- scan(paste(path_to_goal, 'Sindbad', sep=''), what="character", sep="\n", comment.char = "#")
+
+```
+
+
+```{r echo=FALSE}
+
+# Create a dataframe of overall statistics about the files
+
+hist.files <- c(secr, worm.fac, worm.dip, cir, case_norm, case_dip, mish, ber, ber.v, adso, aix, secr.lat, bruno, steg, agrippa, alpha, pica, necr.fac, necr.dip, rett, amir, sind)
+
+langs <-c('Secreta_Secretorum_ENG', 'Codex_Wormianus_fac', 'Codex_Wormianus_dip', 'Cirurgie', 'Casebook_norm', 'Casebook_diplomatic', 'Hebrew_Mishneh', 'Hebrew_Bereshit', 'Hebrew_Bereshit_vowel', 'Latin_Adso', 'Latin_Aix', 'Secreta_Secretorum_LAT', 'BrunoDeMagia', 'Steganographia', 'Agrippa_Book1', 'AlphabetOfTales', 'Picatrix', 'Necrologium_fac', 'Necrologium_dip', 'Rettorica', 'Amirandar', 'Sindbad')
+
+codes <- c('secr.eng', 'worm.fac', 'form.dip', 'cir', 'case.norm', 'case.dip', 'mish', 'ber', 'ber.v', 'adso', 'aix', 'secr.lat', 'bruno', 'steg', 'agr', 'alpha', 'pic', 'necr.fac', 'necr.dip', 'rett', 'amir', 'sind')
+
+fams <- c('English', 'Icelandic', 'Icelandic', 'English', 'English', 'English',  'Hebrew', 'Hebrew', 'Hebrew', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'English', 'English', 'Spanish', 'Latin', 'Latin', 'Italian', 'Georgian', 'Persian')
+
+scripts <- c('Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Hebrew', 'Hebrew', 'Hebrew', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Latin', 'Georgian', 'Arabic')
+
+
+df <- data.frame()
+
+for (i in 1:length(hist.files)) {
+  
+  print(paste(round(i/length(hist.files)*100,2), '% complete', sep=''))
+  
+  doc <- hist.files[i]
+  
+
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+}
+
+df <- cbind(langs, codes, fams, scripts, df)
+
+
+
+write.csv(df, file='Historical_texts/hist_stats.csv', row.names=FALSE)
+
+```

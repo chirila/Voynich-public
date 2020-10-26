@@ -1,0 +1,429 @@
+---
+title: "All Wikis"
+author: "Luke Lindemann"
+date: "7/26/2019"
+output: html_document
+---
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+library(readxl)
+
+
+langdata <- read_excel('Wikipedia_texts/AllWikiTexts.xlsx', sheet="Sheet1")
+
+path_to_voy <- 'Voynich_texts/'
+path_to_raw <- 'Wikipedia_texts/raw/'
+path_to_full <- 'Wikipedia_texts/full/'
+path_to_voynich_size <- 'Wikipedia_texts/voynich_size/'
+
+
+x <- scan("Voynich_texts/Maximal/Full Voynich Maximal", what="character", sep="\n", comment.char = "#")
+x <- gsub(' ', '', x)
+sukhotin_vowels(x)
+ 
+```
+
+
+```{r echo=FALSE}
+
+# Create a dataframe of overall statistics about the files
+
+# Stats for full articles or Voynich size
+voynichSize = FALSE
+
+if (voynichSize) {
+  source_path <- path_to_voynich_size
+} else {
+  source_path <- path_to_full
+}
+
+langs <- c()
+codes <- c()
+fams <- c()
+subgroups <- c()
+scripts <- c()
+
+
+
+df <- data.frame()
+
+for (i in 1:length(langdata$Wikicode)) {
+
+  print(paste(round(i/length(langdata$Wikicode)*100,2), '% complete', sep=''))
+  print (langdata$Wikicode[i])
+  
+  # Langdata information
+  langs <- c(langs, langdata$Language[i])
+  codes <- c(codes, langdata$Wikicode[i])
+  fams <- c(fams, langdata$Family[i])
+  subgroups <- c(subgroups, langdata$Subgrouping[i])
+  scripts <- c(scripts, langdata$Script[i])
+  
+  doc <- scan(paste(source_path, langdata$Language[i], sep=""), what="character", sep="\n", comment.char = "#", nmax = 100000)
+  
+  doc <- concatenate(doc)
+  
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+}
+
+df <- cbind(langs, codes, fams, subgroups, scripts, df)
+
+#df <- data.frame(langs, codes, fams, scripts, char.len, char.size, word.len, word.size, char.h2, word.h1, mattr500, mattr1000, mattr2000, word1, word2, word3, word1.prop, word10.prop)
+
+df
+
+# Save the file
+
+write.csv(df, file='Wikipedia_texts/wiki_stats.csv', row.names=FALSE)
+  
+
+```
+
+
+```{r echo=FALSE}
+
+# Create another file with average and standard deviations for all families and subgroupings
+
+
+families <- names(table(df$fams))
+subgroupings <- names(table(df$subgroups))
+
+sum.df <- c()
+
+
+for (grouping in families) {
+  
+  samp.df <- df[df$fams == grouping,]
+  
+  samp.df$langs <- NULL
+  samp.df$fams <- NULL
+  samp.df$subgroups <- NULL
+  samp.df$codes <- NULL
+  samp.df$scripts <- NULL
+  samp.df$word1 <- NULL
+  samp.df$word2 <- NULL
+  samp.df$word3 <- NULL
+  samp.df$word4 <- NULL
+  samp.df$word5 <- NULL
+  
+  stat <- 'mean'
+  f.df <- data.frame(grouping, stat, t(apply(samp.df, 2, mean)))
+  sum.df <- rbind(sum.df, f.df)
+  
+  stat <- 'sd'
+  f.df <- data.frame(grouping, stat, t(apply(samp.df, 2, sd)))
+  sum.df <- rbind(sum.df, f.df)
+}
+
+
+for (grouping in subgroupings) {
+  
+  samp.df <- df[df$subgroups == grouping,]
+  
+  samp.df$langs <- NULL
+  samp.df$fams <- NULL
+  samp.df$subgroups <- NULL
+  samp.df$codes <- NULL
+  samp.df$scripts <- NULL
+  samp.df$word1 <- NULL
+  samp.df$word2 <- NULL
+  samp.df$word3 <- NULL
+  samp.df$word4 <- NULL
+  samp.df$word5 <- NULL
+  
+  stat <- 'mean'
+  f.df <- data.frame(grouping, stat, t(apply(samp.df, 2, mean)))
+  sum.df <- rbind(sum.df, f.df)
+  
+  stat <- 'sd'
+  f.df <- data.frame(grouping, stat, t(apply(samp.df, 2, sd)))
+  sum.df <- rbind(sum.df, f.df)
+}
+
+write.csv(sum.df, file='Wikipedia_texts/wiki_stats_groupings.csv', row.names=FALSE)
+
+sum.df
+
+```
+
+
+
+```{r echo=FALSE}
+
+# Create an additional dataframe of samples
+
+# Load Voynich Samples
+
+voy <- scan(paste(path_to_voy, 'Full Voynich Complex', sep=''), what="character", sep="\n", comment.char = "#")
+voya <- scan(paste(path_to_voy, 'Voynich A Complex', sep=''), what="character", sep="\n", comment.char = "#")
+voyb <- scan(paste(path_to_voy, 'Voynich B Complex', sep=''), what="character", sep="\n", comment.char = "#")
+voysa1 <- scan(paste(path_to_voy, 'Voynich Sample A1', sep=''), what="character", sep="\n", comment.char = "#")
+voysa2 <- scan(paste(path_to_voy, 'Voynich Sample A2', sep=''), what="character", sep="\n", comment.char = "#")
+voysb1 <- scan(paste(path_to_voy, 'Voynich Sample B1', sep=''), what="character", sep="\n", comment.char = "#")
+voysb2 <- scan(paste(path_to_voy, 'Voynich Sample B2', sep=''), what="character", sep="\n", comment.char = "#")
+
+voydocs <- c(voy, voya, voyb, voysa1, voysa2, voysb1, voysb2)
+
+voylangs <- c('Full Voynich', 'Voynich A Complex', 'Voynich B Complex', 'Voynich Sample A1', 'Voynich Sample A2', 'Voynich Sample B1', 'Voynich Sample B2')
+voycodes <- c('voy', 'voya', 'voyb', 'voysa1', 'voysa2', 'voysb1', 'voysb2')
+voyfams <- rep('Voynich', 7)
+voyscripts <- rep('Voynich', 7)
+
+# Add Language samples
+
+# Occitan
+oc.list <- unlist(strsplit(scan(paste(path_to_voynich_size, 'Occitan', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+oc <- concatenate(oc.list)
+oc.sa1 <- concatenate(sample(oc.list, size=11415))
+oc.sa2 <- concatenate(sample(oc.list, size=11415))
+oc.sb1 <- concatenate(sample(oc.list, size=23245))
+oc.sb2 <- concatenate(sample(oc.list, size=23245))
+
+# Low Saxon
+nds.list <- unlist(strsplit(scan(paste(path_to_voynich_size, 'Low Saxon', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+nds <- concatenate(nds.list)
+nds.sa1 <- concatenate(sample(nds.list, size=11415))
+nds.sa2 <- concatenate(sample(nds.list, size=11415))
+nds.sb1 <- concatenate(sample(nds.list, size=23245))
+nds.sb2 <- concatenate(sample(nds.list, size=23245))
+
+# Maltese
+mt.list <- unlist(strsplit(scan(paste(path_to_voynich_size, 'Maltese', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+mt <- concatenate(mt.list)
+mt.sa1 <- concatenate(sample(mt.list, size=11415))
+mt.sa2 <- concatenate(sample(mt.list, size=11415))
+mt.sb1 <- concatenate(sample(mt.list, size=23245))
+mt.sb2 <- concatenate(sample(mt.list, size=23245))
+
+# Persian
+fa.list <- unlist(strsplit(scan(paste(path_to_voynich_size, 'Persian', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+fa <- concatenate(fa.list)
+fa.sa1 <- concatenate(sample(fa.list, size=11415))
+fa.sa2 <- concatenate(sample(fa.list, size=11415))
+fa.sb1 <- concatenate(sample(fa.list, size=23245))
+fa.sb2 <- concatenate(sample(fa.list, size=23245))
+
+
+samps <- c(voydocs, oc, oc.sa1, oc.sa2, oc.sb1, oc.sb2, nds, nds.sa1, nds.sa2, nds.sb1, nds.sb2, mt, mt.sa1, mt.sa2, mt.sb1, mt.sb2, fa, fa.sa1, fa.sa2, fa.sb1, fa.sb2)
+
+
+langs <- c(voylangs, 'Occitan', 'Occitan Sample A1', 'Occitan Sample A2', 'Occitan Sample B1', 'Occitan Sample B2', 'Low Saxon', 'Low Saxon Sample A1', 'Low Saxon Sample A2', 'Low Saxon Sample B1', 'Low Saxon Sample B2', 'Maltese', 'Maltese Sample A1', 'Maltese Sample A2', 'Maltese Sample B1', 'Maltese Sample B2', 'Persian', 'Persian Sample A1', 'Persian Sample A2', 'Persian Sample B1', 'Persian Sample B2')
+codes <- c(voycodes, 'oc', 'oc.sa1', 'oc.sa2', 'oc.sb1', 'oc.sb2', 'nds', 'nds.sa1', 'nds.sa2', 'nds.sb1', 'nds.sb2', 'mt', 'mt.sa1', 'mt.sa2', 'mt.sb1', 'mt.sb2', 'fa', 'fa.sa1', 'fa.sa2', 'fa.sb1', 'fa.sb2')
+fams <- c( voyfams, rep('Romance', 5), rep('Germanic', 5), rep('Semitic', 5), rep('Iranian', 5))
+scripts <- c( voyscripts, rep('Latin', 15), rep('Arabic', 5))
+
+df <- data.frame()
+
+for (v in samps) {
+  doc <- v
+
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+  
+}
+
+df.samps <- cbind(langs, codes, fams, scripts, df)
+
+
+
+# Save the file
+
+write.csv(df.samps, file='Wikipedia_texts/sample_stats.csv', row.names=FALSE)
+
+
+
+
+```
+
+
+```{r echo=FALSE}
+
+
+# Create an additional dataframe for other experiments
+
+# Voyniches Scrambled and Unscrambled
+
+voy <- scan(paste(path_to_voy, 'Full Voynich', sep=''), what="character", sep="\n", comment.char = "#")
+voy.list <- unlist(strsplit(voy, " "))
+voy.top <- concatenate(head(voy.list, length(voy.list)/2))
+voy.bot <- concatenate(tail(voy.list, length(voy.list)/2))
+voy.scr <- concatenate(sample(voy.list, length(voy.list)))
+voy.scr2 <- concatenate(sample(voy.list, length(voy.list)))
+voy.scr3 <- concatenate(sample(voy.list, length(voy.list)))
+
+voya <- scan(paste(path_to_voy, 'Voynich A', sep=''), what="character", sep="\n", comment.char = "#")
+voya.list <- unlist(strsplit(voya, " "))
+voya.top <- concatenate(head(voya.list, length(voya.list)/2))
+voya.bot <- concatenate(tail(voya.list, length(voya.list)/2))
+voya.scr <- concatenate(sample(voya.list, length(voya.list)))
+voya.scr2 <- concatenate(sample(voya.list, length(voya.list)))
+voya.scr3 <- concatenate(sample(voya.list, length(voya.list)))
+
+voyb <- scan(paste(path_to_voy, 'Voynich B', sep=''), what="character", sep="\n", comment.char = "#")
+voyb.list <- unlist(strsplit(voyb, " "))
+voyb.top <- concatenate(head(voyb.list, length(voyb.list)/2))
+voyb.bot <- concatenate(tail(voyb.list, length(voyb.list)/2))
+voyb.scr <- concatenate(sample(voyb.list, length(voyb.list)))
+voyb.scr2 <- concatenate(sample(voyb.list, length(voyb.list)))
+voyb.scr3 <- concatenate(sample(voyb.list, length(voyb.list)))
+
+
+voydocs <- c(voy, voy.top, voy.bot, voy.scr, voy.scr2, voy.scr3, voya, voya.top, voya.bot, voya.scr, voya.scr2, voya.scr3, voyb, voyb.top, voyb.bot, voyb.scr, voyb.scr2, voyb.scr3)
+
+voylangs <- c('Full Voynich', 'Full Voynich Top', 'Full Voynich Bottom', 'Full Voynich Scrambled', 'Full Voynich Scrambled2', 'Full Voynich Scrambled3', 'Voynich A', 'Voynich A Top', 'Voynich A Bottom', 'Voynich A Scrambled', 'Voynich A Scrambled2', 'Voynich A Scrambled3', 'Voynich B', 'Voynich B Top', 'Voynich B Bottom', 'Voynich B Scrambled', 'Voynich B Scrambled2', 'Voynich B Scrambled3')
+voycodes <- c('voy', 'voy.top', 'voy.bot', 'voy.scr', 'voy.scr2', 'voy.scr3', 'voya', 'voya.top', 'voya.bot', 'voya.scr', 'voya.scr2', 'voya.scr3', 'voyb', 'voyb.top', 'voyb.bot', 'voyb.scr', 'voyb.scr2', 'voyb.scr3')
+voyfams <- rep('Voynich', 18)
+voyscripts <- rep('Voynich', 18)
+
+# Add Language experiments
+
+#bo <- scan('WikiCorpus/allwikis/docs/voynich_size/Tibetan', what="character", sep="\n", comment.char = "#")
+#bo.chars <- unlist(strsplit(bo, ""))
+#bo.char.table <- table(bo.chars)
+#bo.char.table <- bo.char.table[order(bo.char.table, decreasing = TRUE)]
+#bo.char.table
+#bo.nocombo <- gsub('[ ུ  ྱ ྲ ྞ     ྔ ྒ   ྟ   ྐ    ྡ ྥ         ྴ       ྠ ྜ        ྵ ྰ  ྕ       ྤ ྗ   ྙ       ཱ    ྨ  ྭ       ྦ           ྣ       ྫ    ྑ       ྻ      ྩ ྷ ླ ྶ       ]', '', bo)
+#bo.nocombo <- concatenate(bo.nocombo)
+# I dunno...
+
+
+# Scrambled and Unscrambled Languages
+
+# Occitan
+oc.list <- unlist(strsplit(scan(paste(path_to_full, 'Occitan', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+
+oc <- concatenate(oc.list)
+oc.scr <- concatenate(sample(oc.list, size = length(oc.list)))
+
+oc.sa <- concatenate(oc.list[1:11415])
+oc.sa.scr <- concatenate(sample(oc.list, size=11415))
+
+oc.sb <- concatenate(oc.list[1:23245])
+oc.sb.scr <- concatenate(sample(oc.list, size=23245))
+
+
+# Maltese
+mt.list <- unlist(strsplit(scan(paste(path_to_full, 'Maltese', sep=''), what="character", sep="\n", comment.char = "#"), " "))
+
+mt <- concatenate(mt.list)
+mt.scr <- concatenate(sample(mt.list, size = length(mt.list)))
+
+mt.sa <- concatenate(mt.list[1:11415])
+mt.sa.scr <- concatenate(sample(mt.list, size=11415))
+
+mt.sb <- concatenate(mt.list[1:23245])
+mt.sb.scr <- concatenate(sample(mt.list, size=23245))
+
+
+experiments <- c(voydocs, oc, oc.scr, oc.sa, oc.sa.scr, oc.sb, oc.sb.scr, mt, mt.scr, mt.sa, mt.sa.scr, mt.sb, mt.sb.scr)
+
+langs <- c(voylangs, c('Occitan', 'Occitan Scrambled', 'Occitan Sample A', 'Occitan Sample A Scrambled', 'Occitan Sample B', 'Occitan Sample B Scrambled', 'Maltese', 'Maltese Scrambled', 'Maltese Sample A', 'Maltese Sample A Scrambled', 'Maltese Sample B', 'Maltese Sample B Scrambled'))
+codes <- c(voycodes, c('oc', 'oc.scr', 'oc.sa', 'oc.sa.scr', 'oc.sb', 'oc.sb.scr', 'mt', 'mt.scr', 'mt.sa', 'mt.sa.scr', 'mt.sb', 'mt.sb.scr'))
+fams <- c( voyfams, rep('Romance', 6), rep('Semitic', 6))
+scripts <- c( voyscripts, rep('Latin', 12))
+
+
+df <- data.frame()
+for (v in experiments) {
+  doc <- v
+
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+
+}
+
+df <- cbind(langs, codes, fams, scripts, df)
+
+
+# Save the file
+
+write.csv(df, file='Wikipedia_texts/exp_stats.csv', row.names=FALSE)
+
+
+```
+
+
+
+
+
+```{r echo=FALSE}
+
+# Create a dataframe of overall statistics for each 20,000 words of the wikipedia corpus
+window <- 20000
+# Stats for full articles or Voynich size
+voynichSize = FALSE
+
+if (voynichSize) {
+  source_path <- path_to_voynich_size
+} else {
+  source_path <- path_to_full
+}
+
+langs <- c()
+codes <- c()
+fams <- c()
+scripts <- c()
+
+
+
+full.df <- data.frame()
+
+for (i in 1:length(langdata$Wikicode)) {
+
+  print(paste(round(i/length(langdata$Wikicode)*100,2), '% complete', sep=''))
+  print (langdata$Wikicode[i])
+  
+  # Langdata information
+  langs <- langdata$Language[i]
+  codes <- langdata$Wikicode[i]
+  fams <- langdata$Family[i]
+  scripts <- langdata$Script[i]
+  
+  doc <- scan(paste(source_path, langdata$Language[i], sep=""), what="character", sep="\n", comment.char = "#", nmax = 100000)
+  
+  doc <- concatenate(doc)
+  
+  doc.list <- unlist(strsplit(doc, split=' '))
+  
+  doc.part <- split(doc.list, as.integer((seq_along(doc.list) - 1) / window))
+
+  part.df <- data.frame()
+  
+  for (p in 1:length(doc.part)) {
+    
+    partition <- p
+    s <- concatenate(doc.part[p])
+    
+    s.df <- multi_stats(s)
+    s.df <- cbind(langs, codes, fams, scripts, partition, s.df)
+    part.df <- rbind(part.df, s.df)
+ 
+  }
+  full.df <- rbind(full.df, part.df)
+}
+
+#df <- data.frame(langs, codes, fams, scripts, char.len, char.size, word.len, word.size, char.h2, word.h1, mattr500, mattr1000, mattr2000, word1, word2, word3, word1.prop, word10.prop)
+
+full.df
+
+# Save the file
+
+write.csv(full.df, file='Wikipedia_texts/wiki_total_distr_stats.csv', row.names=FALSE)
+
+
+```
+
+
+

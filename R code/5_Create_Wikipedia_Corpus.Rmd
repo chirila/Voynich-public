@@ -1,0 +1,425 @@
+---
+title: "All Wikis"
+author: "Luke Lindemann"
+date: "7/26/2019"
+output: html_document
+---
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+library(readxl)
+
+
+langdata <- read_excel('Wikipedia_texts/AllWikiTexts.xlsx', sheet="Sheet1")
+
+path_to_voy <- 'Voynich_texts/'
+path_to_raw <- 'Wikipedia_texts/raw/'
+path_to_full <- 'Wikipedia_texts/full/'
+path_to_voynich_size <- 'Wikipedia_texts/voynich_size/'
+
+
+
+```
+
+
+```{r echo=FALSE}
+
+
+
+### This is a function which goes through texts and deletes uncommon letters
+### The default threshold is .01%
+
+delete_uncommon_chars <- function (s, thresh = .0001) {
+  
+  char.table <- table(unlist(strsplit(s, "")))
+  char.rat.table <- char.table / sum(char.table)
+  s.del <- s
+  
+  for (c in names(char.rat.table)) {
+    if (char.rat.table[c] <= thresh) {
+      s.del <- str_remove_all(s.del, c)
+    }
+  }
+  
+  return (s.del)
+}
+
+```
+
+
+```{r echo=FALSE}
+
+
+
+### This is a function which restricts a text by unicode range based on the script type
+    ## It also deletes non-Latin punctuation and numerals in Syriac, Devanagari, Ethiopic, Bengali, Myanmar, Gujarati, Gurmukhi, Kannada,
+    ## Khmer, Lao, Malayalam, Odia, Ol Chiki, Tamil, Telugu, Thai, and Tibetan
+    ## (Note: Cyrillic, Armenian, Greek are bicameral, which the 'tolower' function recognizes)
+            # Cherokee is also bicameral, but only one set is represented
+
+
+refine_script_range <- function (s, script='Latin') {
+  
+  s.ref <- s
+  
+  if (script == 'Cyrillic') {
+    # Cyrillic, Cyrillic Supplement, Cyrillic Extended A, Cyrillic Extended B, Cyrillic Extended C 
+    s.ref <- gsub('[^\u0400-\u04FF\u0500-\u052F\u2DE0-\u2DFF\uA640-\uA69F\u1C80-\u1C8F\uA651\uA641\uA657 ]', '', s)
+  }
+
+  if (script == 'Greek') {
+    # Greek, Greek Extended
+    s.ref <- gsub('[^\u0370-\u03FF\u1F00-\u1FFF ]', '', s)
+  }
+  
+  if (script == 'Arabic') {
+    # Arabic, Arabic Extended A
+    s.ref <- gsub('[^\u0600-\u06FF\u08A0-\u08FF ]', '', s)
+  } 
+  
+  if (script == 'Latin') {
+    # Basic Latin, Latin 1 Supplement, Latin Extended A, Latin Extended B, Latin Extended C, Latin Extended D, Latin Extended E, Latin Extended Additional, IPA Extensions, Superscripts and Subscripts
+    s.ref <- gsub('[^\u0001-\u007F\u0080-\u00FF\u0100-\u017F\u0180-\u024F\u2C60-\u2C7F\uA720-\uA7FF\uAB30-\uAB6F\u1E00-\u1EFF\u0250-\u02AF]', '', s)
+  } 
+
+  
+  if (script == 'Syriac') {
+    # Syriac, Syriac Supplement
+    s.ref <- gsub('[^\u0700-\u074F\u0860-\u086F ]', '', s)
+    s.ref <- gsub('[܀܁܂܃܄܆܇܈܉※܊܋܌܍]', '', s.ref) # Excluded Syriac punctuation
+  }  
+  
+  
+  if (script == 'Georgian') {
+    # Georgian
+    s.ref <- gsub('[^\u10A0-\u10FF ]', '', s)
+  }  
+  
+  if (script == 'Armenian') {
+    # Armenian
+    s.ref <- gsub('[^\u0530-\u058F ]', '', s)
+  } 
+
+  if (script == 'Devanagari') {
+    # Devanagari, Extended Devanagari
+    s.ref <- gsub('[^\u0900-\u097F\uA8E0-\uA8FF ]', '', s)
+    s.ref <- gsub('[।॥०१२३४५६७८९]', '', s.ref) # Excludes full stops and numerals
+  }
+
+
+  if (script == 'Ethiopic') {
+    # Ethiopic, Ethiopic Extended
+    s.ref <- gsub('[^\u1200-\u137F\u1380-\u139F ]', '', s)
+    s.ref <- gsub('[፩፪፫፬፭፮፯፰፱፲፳፴፵፶፷፸፹፺፻፼]', '', s.ref) # Excludes Ethiopic Numerals
+    }  
+  
+  if (script == 'Bengali') {
+    # Bengali
+    s.ref <- gsub('[^\u0980-\u09FF ]', '', s)
+    s.ref <- gsub('[৷০১২৩৪৫৬৭৮৯]', '', s.ref) # Excludes full stop and numerals
+  }  
+  
+  if (script == 'Myanmar') {
+    # Myanmar, Myanmar Extended A, Myanmar Extended B
+    s.ref <- gsub('[^\u1000-\u109F\uAA60-\uAA7F\uA9E0-\uA9ff ]', '', s)
+    s.ref <- gsub('[။၊၀၁၂၃၄၅၆၇၈၉]', '', s.ref) # Excludes full stops and numerals
+  }
+  
+  if (script == 'Cantonese') {
+    # CJK Unified Ideographs (Han)
+    s.ref <- gsub('[^\u4E00-\u9FFF ]', '', s)
+  }
+
+  if (script == 'Cherokee') {
+    # Cherokee, Cherokee Supplement
+    s.ref <- gsub('[^\u13A0-\u13FF\uAB70-\uABBF ]', '', s)
+  }
+  
+  if (script == 'Chinese') {
+    # CJK Unified Ideographs (Han)
+    s.ref <- gsub('[^\u4E00-\u9FFF ]', '', s)
+  }
+  
+  if (script == 'Japanese') {
+    # Kanji, Hiragana, Katakana
+    s.ref <- gsub('[^\u4E00-\u9FBF\u3040-\u309F\u30A0-\u30FF ]', '', s)
+  } 
+
+  if (script == 'Gothic') {
+    # Gothic is not in the BMP so I'm taking the xml file and deleting everything that's not
+    # a space or outside of the BMP     U+0020
+
+    s.ref <- gsub('[\u0001-\u0019\u0021-\uFFFF]', '', s)
+  }  
+
+  if (script == 'Gujarati') {
+    # Gujarati
+    s.ref <- gsub('[^\u0A80-\u0AFF ]', '', s)
+    s.ref <- gsub('[૦૧૨૪૫૬૭૮૯૩]', '', s.ref) # Excludes numerals
+  }
+  
+  if (script == 'Gurmukhi') {
+    # Gurmukhi
+    s.ref <- gsub('[^\u0A00-\u0A7F ]', '', s)
+    s.ref <- gsub('[।॥੦੧੨੩੪੫੬੭੮੯]', '', s.ref) # Excludes full stops and numerals
+  }
+  if (script == 'Hangul') {
+    # Hangul
+    s.ref <- gsub('[^\uAC00-\uD7AF ]', '', s)
+  }
+  
+  if (script == 'Hebrew') {
+    # Hebrew
+    s.ref <- gsub('[^\u0590-\u05FF ]', '', s)
+  }
+  
+  if (script == 'Inuktitut') {
+    # Inuktitut
+    s.ref <- gsub('[^\u1400-\u167F ]', '', s)
+  }
+  
+  if (script == 'Kannada') {
+    # Kannada
+    s.ref <- gsub('[^\u0C80-\u0CFF ]', '', s)
+    s.ref <- gsub('[೦೧೨೩೪೫೬೭೮೯]', '', s.ref) # Excluded numerals
+  }
+    
+  if (script == 'Khmer') {
+    # Khmer
+    s.ref <- gsub('[^\u1780-\u17FF ]', '', s)
+    s.ref <- gsub('[។៕៚៙៖០១២៣៤៥៦៧៨៩]', '', s.ref) # Excluded full stop, delimiters, colon, numerals
+  }
+  
+  if (script == 'Lao') {
+    # Lao
+    s.ref <- gsub('[^\u0E80-\u0EFF ]', '', s)
+    s.ref <- gsub('[ຯ໐໑໒໓໔໕໖໗໘໙]', '', s.ref) # Excluded ellipsis, numerals
+
+  }
+
+  if (script == 'Malayalam') {
+    # Malayalam
+    s.ref <- gsub('[^\u0D00-\u0D7F ]', '', s)
+    s.ref <- gsub('[൹।॥൦൧൨൩൪൫൬൭൮൯൰൱൲൳൴൵]', '', s.ref) # Excludes date mark, full stops, and numerals
+  }
+  
+  if (script == 'Odia') {
+    # Odia
+    s.ref <- gsub('[^\u0B00-\u0B7F ]', '', s)
+    s.ref <- gsub('[୦୧୨୩୪୫୬୭୮୯୵୶୷୲୳୴]', '', s.ref) # Excludes numerals
+
+  }
+  
+  if (script == 'Ol Chiki') {
+    # Ol Chiki
+    s.ref <- gsub('[^\u1C50-\u1C7F ]', '', s)
+    s.ref <- gsub('[᱾᱿᱐᱑᱒᱓᱔᱕᱖᱗᱘᱙]', '', s.ref) # Excludes full stops and numerals
+  }
+  
+  if (script == 'Sinhala') {
+    # Sinhala
+    s.ref <- gsub('[^\u0D80-\u0DFF ]', '', s)
+  }
+  
+  if (script == 'Tamil') {
+    # Tamil
+    s.ref <- gsub('[^\u0B80-\u0BFF ]', '', s)
+    s.ref <- gsub('[௦௧௨௩௪௫௬௭௮௯௰௱௲௳௴௵௶௷௸௹௺]', '', s.ref) # Excludes numerals and accounting symbols
+  }
+
+  if (script == 'Telugu') {
+    # Telugu
+    s.ref <- gsub('[^\u0C00-\u0C7F ]', '', s)
+    s.ref <- gsub('[౦౧౨౩౪౫౬౭౮౯౸౹౺౻౦౼౽౾]', '', s.ref) # Excludes numerals
+
+  }
+  
+  if (script == 'Thaana') {
+    # Thaana
+    s.ref <- gsub('[^\u0780-\u07BF ]', '', s)
+  }
+
+  if (script == 'Thai') {
+    # Thai
+    s.ref <- gsub('[^\u0E00-\u0E7F ]', '', s)
+    s.ref <- gsub('[๐๑๒๓๔๕๖๗๘๙ฯ๏๐๚๛฿]', '', s.ref) # Excludes numerals, delimiters, money sign
+
+  }  
+
+  if (script == 'Tibetan') {
+    # Tibetan 
+    s.ref <- gsub('[^\u0F00-\u0FFF ]', '', s)
+    s.ref <- gsub('[༠༡༢༣༤༥༦༧༨༩༳༪༫༬༭༮༯༰༱༲༄༈༉༎།༺༻༼༽]', '', s.ref) # Excludes numerals, half-numerals, full stops, delimiters, brackets
+    s.ref <- gsub('་', ' ', s.ref) # Morpheme delimiters treated as spaces
+  }  
+  
+  if (s==s.ref) {
+    return (0)
+  }
+
+  return (s.ref)
+}
+
+
+
+```
+
+
+```{r echo=FALSE}
+# Clean the file and save them in a folder (takes about 30 minutes)
+# 1. Clean the raw files
+# 2. Save the cleaned files in the specified folder
+# 3. Create a dataframe of overall statistics about the files
+
+voynichSize <- FALSE # Set this to True if you want all files to be Voynich length (37957 words)
+ 
+if (voynichSize) {
+  goal_path <- path_to_voynich_size
+} else {
+  goal_path <- path_to_full
+}
+
+
+for (i in 1:length(langdata$Wikicode)) {
+
+  print(paste(round(i/length(langdata$Wikicode)*100,2), '% complete', sep=''))
+  print (langdata$Wikicode[i])
+  
+  doc <- scan(paste(path_to_raw, langdata$Wikicode[i], 'wiki.txt', sep=""), what="character", sep="\n", comment.char = "#", nmax = 100000)
+
+
+  doc <- concatenate(doc)
+  
+  # Cleaning:
+  doc <- tolower(doc) # Only Lower case
+  doc <- refine_script_range(doc, script=langdata$Script[i]) # Refine Unicode Range 
+
+  if (langdata$Script[i] %in% c('Latin', 'Cyrillic', 'Greek', 'Arabic', 'Hebrew')) {
+    doc <- delete_uncommon_chars(doc) # Delete characters with freq < .0001
+  }
+  doc <- gsub(' (((jpg)|(jpeg)|(png)|(gif))( thumb)? )+', ' ', doc)
+  doc <- gsub(' (((px)|(PlotData)|(AlignBars)|(yyyy)|(ScaleMajor)|(ScaleMinor)|(TimeAxis)|(TextData)|(gridcolor)|(lightgrey)|(DateFormat)|(ImageSize)|(wikibar)|(fontsize)|(cellpadding)|(cellspacing)|(bar text)|(from start till)|(bar from till)|(bar at fontsize text shift)|(width style margin em em background)|(((text)|(border))? align ((left)|(right)|(center)))|(border collapse collapse)|(alignbars)) )+', ' ', doc)
+  doc <- gsub(' {2,}', ' ', doc)
+  
+  # Word Properties
+  doc.list <- unlist(strsplit(doc, " "))
+  
+  
+  if (voynichSize) {
+      # Make the documents the length of Voynich
+    doc.list <- doc.list[1:37957]
+    #doc.list <- doc.list[1:23245]
+    doc <- concatenate(doc.list)
+    doc <- gsub(' NA', '', doc)
+  }
+
+  
+  # Save new document
+  write(doc, file = paste(goal_path, langdata$Language[i], sep=""), sep = "")
+  
+}
+
+```
+
+
+
+```{r echo=FALSE}
+# Some extra notes and code for examining files
+
+
+#for (i in 1:length(langdata$Wikicode)) {
+  
+#    doc <- scan(paste('WikiCorpus/allwikis/', langdata$Wikicode[i], 'wiki.txt', sep=""), what="character", sep="\n", comment.char = "#")
+  
+#    doc <- concatenate(doc)
+    
+#    doc.2 <- refine_script_range(doc, script = langdata$Script[i])
+
+    
+#    z <- str_length(doc.2)/str_length(doc)
+    
+#    if (z<=0.9) {
+#      print(langdata$Language[i])
+#      print(z)
+      
+#    }
+
+    
+#}
+
+
+
+#doc1 <- scan('yiwiki.txt', what="character", sep="\n", comment.char = "#")
+#doc1 <- concatenate(doc1)
+#chars1 <- names(table(unlist(strsplit(doc1, ''))))
+
+
+
+#doc2 <- scan('yiwiki-20190801-pages-articles.xml.bz2', what="character", sep="\n", comment.char = "#")
+#doc2 <- concatenate(doc2)
+#chars2 <- names(table(unlist(strsplit(doc2, ''))))
+
+#x <- setdiff(chars2, chars1)
+
+#x
+#doc2 <- gsub('[^\u0B80-\u0BFF ]', '', doc)
+
+#doc.list <- unlist(strsplit(doc, ''))
+#doc.table <- table(doc.list)
+#doc.table <- doc.table / sum(doc.table)
+#doc.table <- doc.table[order(doc.table, decreasing=TRUE)]
+#doc.table
+
+
+#doc.list2 <- unlist(strsplit(doc2, ''))
+#doc.table2 <- table(doc.list2)
+#doc.table2 <- doc.table2 / sum(doc.table2)
+#doc.table2 <- doc.table2[order(doc.table2, decreasing=TRUE)]
+#doc.table2
+
+
+#library(stringi)
+#stri_escape_unicode
+
+#grepl('[\u0980-\u09FF]', 'র')
+
+# 
+# Divehi: only 23% Divehi script - a lot of Latin (English) metacommentary
+# Inuktitut: 48% Inuktitut script- a portion at the end of the file is in Latin Inuktitut but mostly the Latin is English
+# Cherokee: 48% Cherokee script - a lot of Latin (English) metacommentary
+# Newar: 42% Newari script - a lot of Latin (English) metacomementary
+# Moksha: 62% Cyrillic script - a lot of Latin (English) metacommentary
+
+# Gothic: uses the SMP so I took the xml file and deleted everything not Gothic
+
+
+# Note: the wikicorpus file deletes combining characters in these scripts:
+#       Tibetan, Dzongkha, Thai, Divehi, Telugu, Tamil, Aramaic, Oriya, Shan, Burmese, Malalayam, Lao
+#       Khmer, Kannada, Tulu, Punjabi, Sanskrit, Newar, Nepali, Marathi, Maithili, Hindi, Goan Konkani, Doteli,
+#       Bihari
+#   Procedure: Take the first 100,000 lines of the xml file and process the unicode
+#
+#       For Pali, the main part is in English, so I just copied some Pali wikipedia text pages and preprocessed them
+#       For Cree, I further edited the text by deleting the end part which is all English
+#       For Inupiak (also small, Latin), I just went through and deleted English passages, and the English entries of dictionary comparisons
+#       Note that taking out combining chars does lead to low entropy...
+
+#setdiff(names(doc.table), names(doc.table2))
+
+
+#df[order(df$h2, decreasing=FALSE),]
+
+```
+
+
+
+
+
+

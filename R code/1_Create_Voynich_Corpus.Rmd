@@ -1,0 +1,436 @@
+---
+title: "Create Voynich Corpus"
+author: "Luke Lindemann"
+date: "Updated October 18, 2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+
+path_to_voy <- 'Voynich_texts/'
+
+
+```
+
+
+```{r echo=FALSE}
+
+
+
+interlinear_full_words <- read.table(paste(path_to_voy, 'interlinear_full_words.txt', sep=''), sep="\t", quote="\"", header=TRUE)
+
+# Full Takahashi Transcription
+voynich.full.df <- interlinear_full_words[interlinear_full_words$transcriber == 'H',]
+
+
+```
+
+
+
+```{r}
+
+# Function for Conversion to Minimal Voynich
+
+
+convert_to_minimal <- function (s, remove.spaces = FALSE) {
+# Minimally Decomposed Voynich script is made by substituting sequences of characters with a new character
+
+    # These substitutions are the codes and compositions used by Currier
+  s <- gsub('ch','S', s)   # 'ch' => 'S'
+  s <- gsub('sh','Z', s)   # 'sh' => 'Z'
+  s <- gsub('iiil', '1', s) # 'iiil' => '1'
+  s <- gsub('iil', 'H', s) # 'iil' => 'H'
+  s <- gsub('il', 'G', s) # 'il' => 'G'
+  s <- gsub('iiir', '0', s) # 'iiir' => '0'
+  s <- gsub('iir', 'U', s) # 'iir' => 'U'
+  s <- gsub('ir', 'T', s) # 'ir' => 'T'
+  s <- gsub('iiim', '5', s) # 'iiim' => '5'
+  s <- gsub('iim', 'L', s) # 'iim' => 'L'
+  s <- gsub('im', 'K', s) # 'im' => 'K'
+  s <- gsub('iiin', '3', s) # 'iiin' => '3'
+  s <- gsub('iin', 'M', s) # 'iin' => 'M'
+  s <- gsub('in', 'N', s) # 'in' => 'N'
+    # Gallows characters with benches are treated as separate characters
+  s <- gsub('cth', 'Q', s) # 'cth' => 'Q'
+  s <- gsub('cph', 'W', s) # 'cph' => 'W'
+  s <- gsub('ckh', 'X', s) # 'cKh' => 'X'
+  s <- gsub('cfh', 'Y', s) # 'cph' => 'Y'
+  
+    # Further compositions (not in Currier):
+  
+    # 1. Including sequences of ee as a single glyph (suggested by Zandbergen 2010)
+    s <- gsub('ee', 'E', s)
+    # 2. Count 'qo' as a single glyph
+    s <- gsub('qo', 'q', s)
+
+}
+
+```
+
+
+
+```{r echo=FALSE}
+
+# Full Voynich Maximal
+x <- concatenate(voynich.full.df$complex_word)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Full Voynich Maximal', sep="")
+
+
+# Full Voynich Maximal Text
+par.text <- c('P', 'P1', 'P2', 'P3', 'P4') # These are the placement codes for paragraph text (not labels)
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text,]$complex_word)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Full Voynich Maximal Text', sep="")
+
+# Full Voynich Maximal Simplified
+x <- concatenate(voynich.full.df$word)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Full Voynich Maximal Simplified', sep="")
+
+# Full Voynich Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text,]$word)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Full Voynich Maximal Simplified Text', sep="")
+
+# Full Voynich Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df$word))
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Full Voynich Minimal', sep="")
+
+# Full Voynich Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text,]$word))
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Full Voynich Minimal Text', sep="")
+
+
+
+# Voynich A Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$language == 'A',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich A Maximal', sep="")
+
+# Voynich A Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'A',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich A Maximal Text', sep="")
+
+
+
+# Voynich A Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$language == 'A',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich A Maximal Simplified', sep="")
+
+# Voynich A Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'A',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich A Maximal Simplified Text', sep="")
+
+# Voynich A Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$language == 'A',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich A Minimal', sep="")
+
+# Voynich A Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'A',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich A Minimal Text', sep="")
+
+
+
+
+
+
+# Voynich B Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$language == 'B',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich B Maximal', sep="")
+
+# Voynich B Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'B',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich B Maximal Text', sep="")
+
+
+# Voynich B Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$language == 'B',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich B Maximal Simplified', sep="")
+
+# Voynich B Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'B',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich B Maximal Simplified Text', sep="")
+
+# Voynich B Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$language == 'B',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich B Minimal', sep="")
+
+# Voynich B Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$language == 'B',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich B Minimal Text', sep="")
+
+
+
+
+# Voynich 1 Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '1',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 1 Maximal', sep="")
+
+# Voynich 1 Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '1',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 1 Maximal Text', sep="")
+
+
+# Voynich 1 Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '1',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 1 Maximal Simplified', sep="")
+
+
+
+# Voynich 1 Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '1',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 1 Maximal Simplified Text', sep="")
+
+# Voynich 1 Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$d.hand == '1',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 1 Minimal', sep="")
+
+# Voynich 1 Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '1',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 1 Minimal Text', sep="")
+
+
+
+# Voynich 2 Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '2',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 2 Maximal', sep="")
+
+# Voynich 2 Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '2',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 2 Maximal Text', sep="")
+
+
+# Voynich 2 Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '2',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 2 Maximal Simplified', sep="")
+
+# Voynich 2 Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '2',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 2 Maximal Simplified Text', sep="")
+
+# Voynich 2 Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$d.hand == '2',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 2 Minimal', sep="")
+
+# Voynich 2 Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '2',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 2 Minimal Text', sep="")
+
+
+
+
+# Voynich 3 Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '3',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 3 Maximal', sep="")
+
+# Voynich 3 Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '3',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 3 Maximal Text', sep="")
+
+
+# Voynich 3 Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '3',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 3 Maximal Simplified', sep="")
+
+# Voynich 3 Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '3',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 3 Maximal Simplified Text', sep="")
+
+# Voynich 3 Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$d.hand == '3',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 3 Minimal', sep="")
+
+# Voynich 3 Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '3',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 3 Minimal Text', sep="")
+
+
+
+# Voynich 4 Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '4',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 4 Maximal', sep="")
+
+# Voynich 4 Maximal Text
+x <- concatenate(voynich.full.df[!voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '4',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 4 Maximal Text', sep="")
+
+
+# Voynich 4 Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '4',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 4 Maximal Simplified', sep="")
+
+# Voynich 4 Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '4',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 4 Maximal Simplified Text', sep="")
+
+# Voynich 4 Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$d.hand == '4',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 4 Minimal', sep="")
+
+# Voynich 4 Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '4',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 4 Minimal Text', sep="")
+
+
+
+# Voynich 5 Maximal
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '5',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 5 Maximal', sep="")
+
+# Voynich 5 Maximal Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '5',]$complex_word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal/Voynich 5 Maximal Text', sep="")
+
+
+# Voynich 5 Maximal Simplified
+x <- concatenate(voynich.full.df[voynich.full.df$d.hand == '5',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 5 Maximal Simplified', sep="")
+
+# Voynich 5 Maximal Simplified Text
+x <- concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '5',]$word)
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Maximal Simplified/Voynich 5 Maximal Simplified Text', sep="")
+
+# Voynich 5 Minimal
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$d.hand == '5',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 5 Minimal', sep="")
+
+# Voynich 5 Minimal Text
+x <- convert_to_minimal(concatenate(voynich.full.df[voynich.full.df$placement %in% par.text & voynich.full.df$d.hand == '5',]$word))
+x <- gsub(' NA', '', x)
+x <- gsub(' {2,}', ' ', x)
+write(x, file = 'Voynich_texts/Minimal/Voynich 5 Minimal Text', sep="")
+
+
+
+quick_h2(x)
+
+```
+
+
+
+
+
+
+
+
+
+```{r}
+
+# Sample documents of various sizes from the entire Voynich text
+
+interlinear_full_words <- read.table(paste(path_to_voy, 'interlinear_full_words.txt', sep=''), sep="\t", quote="\"", header=TRUE)
+
+# Full Takahashi Transcription
+voynich.full.df <- interlinear_full_words[interlinear_full_words$transcriber == 'H',]
+
+voy.list <- as.vector(voynich.full.df$word)
+
+voy.samp.a1 <- concatenate(sample(voy.list, size = 11415, replace = FALSE, prob = NULL))
+voy.samp.a2 <- concatenate(sample(voy.list, size = 11415, replace = FALSE, prob = NULL))
+
+voy.samp.b1 <- concatenate(sample(voy.list, size = 23244, replace = FALSE, prob = NULL))
+voy.samp.b2 <- concatenate(sample(voy.list, size = 23244, replace = FALSE, prob = NULL))
+
+
+write(voy.samp.a1, file = 'Voynich_texts/Voynich Sample A1', sep = "")
+write(voy.samp.a2, file = 'Voynich_texts/Voynich Sample A2', sep = "")
+write(voy.samp.b1, file = 'Voynich_texts/Voynich Sample B1', sep = "")
+write(voy.samp.b2, file = 'Voynich_texts/Voynich Sample B2', sep = "")
+```
+

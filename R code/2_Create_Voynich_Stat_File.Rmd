@@ -1,0 +1,233 @@
+---
+title: "Create Voynich Stats Files"
+author: "Luke Lindemann"
+date: "Updated September 15, 2019"
+output: html_document
+---
+```{r echo=FALSE}
+rm(list=ls()) # Clear environment
+
+source('./Entropy_Functions.R')
+
+# Packages
+library(ngram) # for ngrams
+library(ggplot2) # for plots
+library(stringdist) # ngram doesn't work with Hebrew characters, use 'qgrams'
+library(stringr)
+library(readxl)
+
+
+
+path_to_voy <- 'Voynich_texts/'
+
+
+
+
+```
+
+
+```{r echo=FALSE}
+
+
+
+# Create Voynich statistics dataframe
+# Save the file as voystats.csv
+
+
+full.voy.max <- scan('Voynich_texts/Maximal/Full Voynich Maximal', what="character", sep="\n", comment.char = "#")
+full.voy.max.text <- scan('Voynich_texts/Maximal/Full Voynich Maximal Text', what="character", sep="\n", comment.char = "#")
+full.voy.max.simp <- scan('Voynich_texts/Maximal Simplified/Full Voynich Maximal Simplified', what="character", sep="\n", comment.char = "#")
+full.voy.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Full Voynich Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+full.voy.min <- scan('Voynich_texts/Minimal/Full Voynich Minimal', what="character", sep="\n", comment.char = "#")
+full.voy.min.text <- scan('Voynich_texts/Minimal/Full Voynich Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.a.max <- scan('Voynich_texts/Maximal/Voynich A Maximal', what="character", sep="\n", comment.char = "#")
+voy.a.max.text <- scan('Voynich_texts/Maximal/Voynich A Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.a.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich A Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.a.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich A Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.a.min <- scan('Voynich_texts/Minimal/Voynich A Minimal', what="character", sep="\n", comment.char = "#")
+voy.a.min.text <- scan('Voynich_texts/Minimal/Voynich A Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.b.max <- scan('Voynich_texts/Maximal/Voynich B Maximal', what="character", sep="\n", comment.char = "#")
+voy.b.max.text <- scan('Voynich_texts/Maximal/Voynich B Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.b.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich B Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.b.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich B Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.b.min <- scan('Voynich_texts/Minimal/Voynich B Minimal', what="character", sep="\n", comment.char = "#")
+voy.b.min.text <- scan('Voynich_texts/Minimal/Voynich B Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.1.max <- scan('Voynich_texts/Maximal/Voynich 1 Maximal', what="character", sep="\n", comment.char = "#")
+voy.1.max.text <- scan('Voynich_texts/Maximal/Voynich 1 Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.1.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich 1 Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.1.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich 1 Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.1.min <- scan('Voynich_texts/Minimal/Voynich 1 Minimal', what="character", sep="\n", comment.char = "#")
+voy.1.min.text <- scan('Voynich_texts/Minimal/Voynich 1 Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.2.max <- scan('Voynich_texts/Maximal/Voynich 2 Maximal', what="character", sep="\n", comment.char = "#")
+voy.2.max.text <- scan('Voynich_texts/Maximal/Voynich 2 Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.2.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich 2 Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.2.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich 2 Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.2.min <- scan('Voynich_texts/Minimal/Voynich 2 Minimal', what="character", sep="\n", comment.char = "#")
+voy.2.min.text <- scan('Voynich_texts/Minimal/Voynich 2 Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.3.max <- scan('Voynich_texts/Maximal/Voynich 3 Maximal', what="character", sep="\n", comment.char = "#")
+voy.3.max.text <- scan('Voynich_texts/Maximal/Voynich 3 Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.3.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich 3 Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.3.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich 3 Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.3.min <- scan('Voynich_texts/Minimal/Voynich 3 Minimal', what="character", sep="\n", comment.char = "#")
+voy.3.min.text <- scan('Voynich_texts/Minimal/Voynich 3 Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.4.max <- scan('Voynich_texts/Maximal/Voynich 4 Maximal', what="character", sep="\n", comment.char = "#")
+voy.4.max.text <- scan('Voynich_texts/Maximal/Voynich 4 Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.4.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich 4 Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.4.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich 4 Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.4.min <- scan('Voynich_texts/Minimal/Voynich 4 Minimal', what="character", sep="\n", comment.char = "#")
+voy.4.min.text <- scan('Voynich_texts/Minimal/Voynich 4 Minimal Text', what="character", sep="\n", comment.char = "#")
+
+voy.5.max <- scan('Voynich_texts/Maximal/Voynich 5 Maximal', what="character", sep="\n", comment.char = "#")
+voy.5.max.text <- scan('Voynich_texts/Maximal/Voynich 5 Maximal Text', what="character", sep="\n", comment.char = "#")
+voy.5.max.simp <- scan('Voynich_texts/Maximal Simplified/Voynich 5 Maximal Simplified', what="character", sep="\n", comment.char = "#")
+voy.5.max.simp.text <- scan('Voynich_texts/Maximal Simplified/Voynich 5 Maximal Simplified Text', what="character", sep="\n", comment.char = "#")
+voy.5.min <- scan('Voynich_texts/Minimal/Voynich 5 Minimal', what="character", sep="\n", comment.char = "#")
+voy.5.min.text <- scan('Voynich_texts/Minimal/Voynich 5 Minimal Text', what="character", sep="\n", comment.char = "#")
+
+
+voys <- c(full.voy.max, full.voy.max.text, full.voy.max.simp, full.voy.max.simp.text, full.voy.min, full.voy.min.text, voy.a.max, voy.a.max.text, voy.a.max.simp, voy.a.max.simp.text, voy.a.min, voy.a.min.text, voy.b.max, voy.b.max.text, voy.b.max.simp, voy.b.max.simp.text, voy.b.min, voy.b.min.text, voy.1.max, voy.1.max.text, voy.1.max.simp, voy.1.max.simp.text, voy.1.min, voy.1.min.text, voy.2.max, voy.2.max.text, voy.2.max.simp, voy.2.max.simp.text, voy.2.min, voy.2.min.text, voy.3.max, voy.3.max.text, voy.3.max.simp, voy.3.max.simp.text, voy.3.min, voy.3.min.text, voy.4.max, voy.4.max.text, voy.4.max.simp, voy.4.max.simp.text, voy.4.min, voy.4.min.text, voy.5.max, voy.5.max.text, voy.5.max.simp, voy.5.max.simp.text, voy.5.min, voy.5.min.text)
+
+langs <- c('Full Voynich Maximal', 'Full Voynich Maximal Text', 'Full Voynich Maximal Simplified', 'Full Voynich Maximal Simplified Text', 'Full Voynich Minimal', 'Full Voynich Minimal Text', 'Voynich A Maximal', 'Voynich A Maximal Text', 'Voynich A Maximal Simplified', 'Voynich A Maximal Simplified Text', 'Voynich A Minimal', 'Voynich A Minimal Text', 'Voynich B Maximal', 'Voynich B Maximal Text', 'Voynich B Maximal Simplified', 'Voynich B Maximal Simplified Text', 'Voynich B Minimal', 'Voynich B Minimal Text', 'Voynich 1 Maximal', 'Voynich 1 Maximal Text', 'Voynich 1 Maximal Simplified', 'Voynich 1 Maximal Simplified Text', 'Voynich 1 Minimal', 'Voynich 1 Minimal Text', 'Voynich 2 Maximal', 'Voynich 2 Maximal Text', 'Voynich 2 Maximal Simplified', 'Voynich 2 Maximal Simplified Text', 'Voynich 2 Minimal', 'Voynich 2 Minimal Text', 'Voynich 3 Maximal', 'Voynich 3 Maximal Text', 'Voynich 3 Maximal Simplified', 'Voynich 3 Maximal Simplified Text', 'Voynich 3 Minimal', 'Voynich 3 Minimal Text', 'Voynich 4 Maximal', 'Voynich 4 Maximal Text', 'Voynich 4 Maximal Simplified', 'Voynich 4 Maximal Simplified Text', 'Voynich 4 Minimal', 'Voynich 4 Minimal Text', 'Voynich 5 Maximal', 'Voynich 5 Maximal Text', 'Voynich 5 Maximal Simplified', 'Voynich 5 Maximal Simplified Text', 'Voynich 5 Minimal', 'Voynich 5 Minimal Text')
+
+
+
+codes <- c('voy.f.com', 'voy.f.com.text', 'voy.f', 'voy.f.text', 'voy.f.min', 'voy.f.min.text', 'voy.a.com', 'voy.a.com.text', 'voy.a', 'voy.a.text', 'voy.a.min', 'voy.a.min.text', 'voy.b.com', 'voy.b.com.text', 'voy.b', 'voy.b.text', 'voy.b.min', 'voy.b.min.text', 'voy.1.com', 'voy.1.com.text', 'voy.1', 'voy.1.text', 'voy.1.min', 'voy.1.min.text', 'voy.2.com', 'voy.2.com.text', 'voy.2', 'voy.2.text', 'voy.2.min', 'voy.2.min.text', 'voy.3.com', 'voy.3.com.text', 'voy.3', 'voy.3.text', 'voy.3.min', 'voy.3.min.text', 'voy.4.com', 'voy.4.com.text', 'voy.4', 'voy.4.text', 'voy.4.min', 'voy.4.min.text', 'voy.5.com', 'voy.5.com.text', 'voy.5', 'voy.5.text', 'voy.5.min', 'voy.5.min.text')
+fams <- rep('Voynich', 48)
+scripts <- rep('Voynich', 48)
+
+df <- data.frame()
+
+for (v in voys) {
+  doc <- v
+  
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+
+}
+
+
+df <- cbind(langs, codes, fams, scripts, df)
+
+
+
+# Save the file
+
+write.csv(df, file='Voynich_texts/voy_stats.csv', row.names=FALSE)
+
+
+```
+
+
+```{r echo=FALSE}
+
+# Create an additional dataframe of samples
+
+# Load Voynich Samples
+
+voysa1 <- scan(paste(path_to_voy, 'Voynich Sample A1', sep=''), what="character", sep="\n", comment.char = "#")
+voysa2 <- scan(paste(path_to_voy, 'Voynich Sample A2', sep=''), what="character", sep="\n", comment.char = "#")
+voysb1 <- scan(paste(path_to_voy, 'Voynich Sample B1', sep=''), what="character", sep="\n", comment.char = "#")
+voysb2 <- scan(paste(path_to_voy, 'Voynich Sample B2', sep=''), what="character", sep="\n", comment.char = "#")
+
+voydocs <- c(voysa1, voysa2, voysb1, voysb2)
+
+voylangs <- c('Voynich Sample A1', 'Voynich Sample A2', 'Voynich Sample B1', 'Voynich Sample B2')
+voycodes <- c('voysa1', 'voysa2', 'voysb1', 'voysb2')
+voyfams <- rep('Voynich', 4)
+voyscripts <- rep('Voynich', 4)
+
+df <- data.frame()
+
+
+for (v in voydocs) {
+  doc <- v
+
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+
+}
+
+
+df <- cbind(langs, codes, fams, scripts, df)
+
+
+
+# Save the file
+
+write.csv(df, file='Voynich_texts/voy_samp_stats.csv', row.names=FALSE)
+
+
+
+```
+
+
+```{r echo=FALSE}
+
+
+# Create an additional dataframe for other experiments
+
+# Voyniches Scrambled and Unscrambled
+
+voy <- scan(paste(path_to_voy, 'Full Voynich', sep=''), what="character", sep="\n", comment.char = "#")
+voy.list <- unlist(strsplit(voy, " "))
+voy.top <- concatenate(head(voy.list, length(voy.list)/2))
+voy.bot <- concatenate(tail(voy.list, length(voy.list)/2))
+voy.scr <- concatenate(sample(voy.list, length(voy.list)))
+voy.scr2 <- concatenate(sample(voy.list, length(voy.list)))
+voy.scr3 <- concatenate(sample(voy.list, length(voy.list)))
+
+voya <- scan(paste(path_to_voy, 'Voynich A', sep=''), what="character", sep="\n", comment.char = "#")
+voya.list <- unlist(strsplit(voya, " "))
+voya.top <- concatenate(head(voya.list, length(voya.list)/2))
+voya.bot <- concatenate(tail(voya.list, length(voya.list)/2))
+voya.scr <- concatenate(sample(voya.list, length(voya.list)))
+voya.scr2 <- concatenate(sample(voya.list, length(voya.list)))
+voya.scr3 <- concatenate(sample(voya.list, length(voya.list)))
+
+voyb <- scan(paste(path_to_voy, 'Voynich B', sep=''), what="character", sep="\n", comment.char = "#")
+voyb.list <- unlist(strsplit(voyb, " "))
+voyb.top <- concatenate(head(voyb.list, length(voyb.list)/2))
+voyb.bot <- concatenate(tail(voyb.list, length(voyb.list)/2))
+voyb.scr <- concatenate(sample(voyb.list, length(voyb.list)))
+voyb.scr2 <- concatenate(sample(voyb.list, length(voyb.list)))
+voyb.scr3 <- concatenate(sample(voyb.list, length(voyb.list)))
+
+
+voydocs <- c(voy, voy.top, voy.bot, voy.scr, voy.scr2, voy.scr3, voya, voya.top, voya.bot, voya.scr, voya.scr2, voya.scr3, voyb, voyb.top, voyb.bot, voyb.scr, voyb.scr2, voyb.scr3)
+
+langs <- c('Full Voynich', 'Full Voynich Top', 'Full Voynich Bottom', 'Full Voynich Scrambled', 'Full Voynich Scrambled2', 'Full Voynich Scrambled3', 'Voynich A', 'Voynich A Top', 'Voynich A Bottom', 'Voynich A Scrambled', 'Voynich A Scrambled2', 'Voynich A Scrambled3', 'Voynich B', 'Voynich B Top', 'Voynich B Bottom', 'Voynich B Scrambled', 'Voynich B Scrambled2', 'Voynich B Scrambled3')
+codes <- c('voy', 'voy.top', 'voy.bot', 'voy.scr', 'voy.scr2', 'voy.scr3', 'voya', 'voya.top', 'voya.bot', 'voya.scr', 'voya.scr2', 'voya.scr3', 'voyb', 'voyb.top', 'voyb.bot', 'voyb.scr', 'voyb.scr2', 'voyb.scr3')
+fams <- rep('Voynich', 18)
+scripts <- rep('Voynich', 18)
+
+df <- data.frame()
+
+
+for (v in voydocs) {
+  doc <- v
+
+  doc.df <- multi_stats(doc)
+
+  df <- rbind(df, doc.df)
+
+}
+
+
+df <- cbind(langs, codes, fams, scripts, df)
+
+# Save the file
+
+write.csv(df, file='Voynich_texts/voy_exp_stats.csv', row.names=FALSE)
+
+
+
+```
+
