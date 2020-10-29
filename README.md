@@ -1,5 +1,5 @@
 # Voynich-public
-Corpus materials to accompany Character Entropy in Modern and Historical Texts: Comparison Metrics for an Undeciphered Manuscript (Lindemann &amp; Bowern). The full paper is available here: https://lingbuzz.net/lingbuzz/005522
+Corpus materials to accompany Character Entropy in Modern and Historical Texts: Comparison Metrics for an Undeciphered Manuscript (Lindemann &amp; Bowern). The full paper is available here: https://lingbuzz.net/lingbuzz/005522 or https://arxiv.org/abs/2010.14697
 
 The cleaned corpus files and statistic summaries are in the Corpus folder.
 
